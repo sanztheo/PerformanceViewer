@@ -96,27 +96,15 @@ final class SystemMonitor {
         let wired       = UInt64(stats.wire_count) * pageSize
         let compressed  = UInt64(stats.compressor_page_count) * pageSize
 
-        // Formule approximant Activity Monitor :
-        // Used = Total - Free - "Fichiers mis en cache"
-        // Fichiers mis en cache ≈ inactive file-backed pages + purgeable + speculative
-        // On estime la part file-backed des inactives proportionnellement
-        let freePages     = UInt64(stats.free_count)
-        let specPages     = min(UInt64(stats.speculative_count), freePages)
-        let purgePages    = UInt64(stats.purgeable_count)
-        let inactivePages = UInt64(stats.inactive_count)
-        let internalPages = UInt64(stats.internal_page_count)
-        let externalPages = UInt64(stats.external_page_count)
-
-        let totalLogical  = internalPages + externalPages
-        let inactiveFileEst = totalLogical > 0
-            ? inactivePages * externalPages / totalLogical
-            : 0
-        let cachedPages   = inactiveFileEst + purgePages + specPages
-        let totalPages    = total / pageSize
-        let usedPages     = totalPages > (freePages + cachedPages)
-            ? totalPages - freePages - cachedPages
-            : 0
-        let used = usedPages * pageSize
+        // Formule fastfetch/Activity Monitor :
+        // Used = Total - ((free - speculative) + external) × pageSize
+        // Ref: github.com/fastfetch-cli/fastfetch/issues/2171
+        let freePages = UInt64(stats.free_count)
+        let specPages = min(UInt64(stats.speculative_count), freePages)
+        let extPages  = UInt64(stats.external_page_count)
+        let availPages = (freePages - specPages) + extPages
+        let totalPages = total / pageSize
+        let used = totalPages > availPages ? (totalPages - availPages) * pageSize : 0
         let free = total - used
 
         memory = MemoryStats(
