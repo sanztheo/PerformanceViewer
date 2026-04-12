@@ -16,6 +16,7 @@ final class SystemStatsTests: XCTestCase {
     func testMemoryUsedPercentage() {
         let mem = MemoryStats(
             used: 8 * 1024 * 1024 * 1024,
+            active: 5 * 1024 * 1024 * 1024,
             wired: 2 * 1024 * 1024 * 1024,
             compressed: 1 * 1024 * 1024 * 1024,
             free: 8 * 1024 * 1024 * 1024,
@@ -25,7 +26,7 @@ final class SystemStatsTests: XCTestCase {
     }
 
     func testMemoryZeroTotal() {
-        let mem = MemoryStats(used: 0, wired: 0, compressed: 0, free: 0, total: 0)
+        let mem = MemoryStats(used: 0, active: 0, wired: 0, compressed: 0, free: 0, total: 0)
         XCTAssertEqual(mem.usedPercentage, 0.0, accuracy: 0.1)
     }
 

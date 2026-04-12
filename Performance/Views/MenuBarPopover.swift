@@ -151,7 +151,7 @@ struct MenuBarPopover: View {
     private var memoryDetail: some View {
         VStack(alignment: .leading, spacing: 6) {
             detailHeader("Mémoire — Répartition")
-            memRow("Active", bytes: monitor.memory.used - monitor.memory.wired - monitor.memory.compressed, color: .orange)
+            memRow("Active", bytes: monitor.memory.active, color: .orange)
             memRow("Wired", bytes: monitor.memory.wired, color: .red)
             memRow("Compressée", bytes: monitor.memory.compressed, color: .yellow)
             memRow("Libre", bytes: monitor.memory.free, color: .green)
