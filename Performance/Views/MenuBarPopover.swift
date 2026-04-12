@@ -1,9 +1,11 @@
+import ServiceManagement
 import SwiftUI
 
 struct MenuBarPopover: View {
     let monitor: SystemMonitor
 
     @State private var selectedSection: Section?
+    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     enum Section: Hashable {
         case cpu, memory, disk, energy
@@ -226,22 +228,39 @@ struct MenuBarPopover: View {
     // MARK: - Footer
 
     private var footer: some View {
-        HStack {
-            Button("Moniteur d'activité") {
-                NSWorkspace.shared.launchApplication("Activity Monitor")
-            }
-            .buttonStyle(.plain)
-            .font(.caption)
-            .foregroundStyle(.blue)
+        VStack(spacing: 6) {
+            Toggle("Lancer au démarrage", isOn: $launchAtLogin)
+                .toggleStyle(.switch)
+                .font(.caption)
+                .onChange(of: launchAtLogin) { _, newValue in
+                    do {
+                        if newValue {
+                            try SMAppService.mainApp.register()
+                        } else {
+                            try SMAppService.mainApp.unregister()
+                        }
+                    } catch {
+                        launchAtLogin = !newValue
+                    }
+                }
 
-            Spacer()
+            HStack {
+                Button("Moniteur d'activité") {
+                    NSWorkspace.shared.launchApplication("Activity Monitor")
+                }
+                .buttonStyle(.plain)
+                .font(.caption)
+                .foregroundStyle(.blue)
 
-            Button("Quitter") {
-                NSApplication.shared.terminate(nil)
+                Spacer()
+
+                Button("Quitter") {
+                    NSApplication.shared.terminate(nil)
+                }
+                .buttonStyle(.plain)
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
-            .font(.caption)
-            .foregroundStyle(.secondary)
         }
         .padding(10)
     }
