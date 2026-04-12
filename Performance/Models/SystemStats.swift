@@ -60,16 +60,17 @@ struct DiskStats: Sendable {
         return Double(used) / Double(total) * 100
     }
 
+    // Base 10 (Go) comme Finder
     var usedGB: String {
-        String(format: "%.0f", Double(used) / 1_073_741_824)
+        String(format: "%.0f", Double(used) / 1_000_000_000)
     }
 
     var totalGB: String {
-        String(format: "%.0f", Double(total) / 1_073_741_824)
+        String(format: "%.0f", Double(total) / 1_000_000_000)
     }
 
     var freeGB: String {
-        String(format: "%.0f", Double(free) / 1_073_741_824)
+        String(format: "%.0f", Double(free) / 1_000_000_000)
     }
 
     static let zero = DiskStats(total: 0, free: 0)

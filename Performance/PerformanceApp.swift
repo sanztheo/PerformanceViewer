@@ -8,24 +8,44 @@ struct PerformanceApp: App {
         MenuBarExtra {
             MenuBarPopover(monitor: monitor)
         } label: {
-            HStack(spacing: 6) {
+            let cpu = Int(monitor.cpu.totalUsage)
+            let memUsed = Double(monitor.memory.used) / 1_073_741_824
+            let memTotal = Double(monitor.memory.total) / 1_073_741_824
+            let diskUsed = monitor.disk.usedGB
+            let diskTotal = monitor.disk.totalGB
+
+            HStack(spacing: 2) {
                 Image(systemName: "cpu")
-                Text("\(Int(monitor.cpu.totalUsage))%")
+                    .imageScale(.small)
+                Text("\(cpu)%")
+
+                Text("│").foregroundStyle(.quaternary)
 
                 Image(systemName: "memorychip")
-                Text(memoryLabel)
+                    .imageScale(.small)
+                Text(String(format: "%.1f/%.0f", memUsed, memTotal))
+
+                Text("│").foregroundStyle(.quaternary)
+
+                Image(systemName: "bolt.fill")
+                    .imageScale(.small)
+                Text(energyMenuLabel)
+
+                Text("│").foregroundStyle(.quaternary)
 
                 Image(systemName: "internaldrive")
-                Text("\(monitor.disk.usedGB)/\(monitor.disk.totalGB)")
+                    .imageScale(.small)
+                Text("\(diskUsed)/\(diskTotal)")
             }
-            .font(.system(.caption2, design: .monospaced))
+            .font(.system(size: 10, weight: .medium, design: .monospaced))
         }
         .menuBarExtraStyle(.window)
     }
 
-    private var memoryLabel: String {
-        let usedGB = Double(monitor.memory.used) / 1_073_741_824
-        let totalGB = Double(monitor.memory.total) / 1_073_741_824
-        return String(format: "%.1f/%.0f GB", usedGB, totalGB)
+    private var energyMenuLabel: String {
+        if let battery = monitor.energy.batteryLevel {
+            return String(format: "%.0f%%", battery)
+        }
+        return monitor.energy.thermalLabel
     }
 }
