@@ -1,32 +1,16 @@
-//
-//  PerformanceApp.swift
-//  Performance
-//
-//  Created by Sanz on 13/04/2026.
-//
-
 import SwiftUI
-import SwiftData
 
 @main
 struct PerformanceApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    @State private var monitor = SystemMonitor()
 
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        MenuBarExtra {
+            Text("Loading...")
+                .frame(width: 320, height: 400)
+        } label: {
+            Label("Performance", systemImage: "gauge.medium")
         }
-        .modelContainer(sharedModelContainer)
+        .menuBarExtraStyle(.window)
     }
 }
