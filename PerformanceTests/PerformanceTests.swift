@@ -35,3 +35,25 @@ final class SystemStatsTests: XCTestCase {
         XCTAssertFalse(proc.memoryFormatted.isEmpty)
     }
 }
+
+final class SystemMonitorTests: XCTestCase {
+    func testCPUStatsArePopulated() {
+        let monitor = SystemMonitor()
+        // Need two refreshes for delta calculation
+        monitor.refreshCPU()
+        Thread.sleep(forTimeInterval: 0.1)
+        monitor.refreshCPU()
+
+        let total = monitor.cpu.user + monitor.cpu.system + monitor.cpu.idle + monitor.cpu.nice
+        XCTAssertGreaterThan(total, 0, "CPU ticks should be populated after two samples")
+    }
+
+    func testMemoryStatsArePopulated() {
+        let monitor = SystemMonitor()
+        monitor.refreshMemory()
+
+        XCTAssertGreaterThan(monitor.memory.total, 0, "Total memory should be > 0")
+        XCTAssertGreaterThan(monitor.memory.used, 0, "Used memory should be > 0")
+        XCTAssertLessThanOrEqual(monitor.memory.used, monitor.memory.total)
+    }
+}
