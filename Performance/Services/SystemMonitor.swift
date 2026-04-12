@@ -1,11 +1,14 @@
 import Darwin
 import Foundation
+import IOKit.ps
 import Observation
 
 @Observable
 final class SystemMonitor {
     var cpu: CPUStats = .zero
     var memory: MemoryStats = .zero
+    var disk: DiskStats = .zero
+    var energy: EnergyStats = .zero
     var topProcesses: [ProcessStats] = []
 
     private var previousCPUTicks: (user: UInt64, system: UInt64, idle: UInt64, nice: UInt64)?
@@ -148,6 +151,59 @@ final class SystemMonitor {
             .map { $0 }
     }
 
+    // MARK: - Disk
+
+    func refreshDisk() {
+        do {
+            let attrs = try FileManager.default.attributesOfFileSystem(forPath: "/")
+            let total = (attrs[.systemSize] as? NSNumber)?.uint64Value ?? 0
+            let free = (attrs[.systemFreeSize] as? NSNumber)?.uint64Value ?? 0
+            disk = DiskStats(total: total, free: free)
+        } catch {}
+    }
+
+    // MARK: - Energy
+
+    func refreshEnergy() {
+        let state = ProcessInfo.processInfo.thermalState
+        let thermalInt: Int
+        switch state {
+        case .nominal: thermalInt = 0
+        case .fair: thermalInt = 1
+        case .serious: thermalInt = 2
+        case .critical: thermalInt = 3
+        @unknown default: thermalInt = 0
+        }
+
+        var batteryLevel: Double?
+        var isCharging: Bool?
+        var powerSource = "—"
+
+        let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
+        let sources = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue() as Array
+
+        for source in sources {
+            guard let info = IOPSGetPowerSourceDescription(snapshot, source)?.takeUnretainedValue() as? [String: Any] else { continue }
+            if let current = info[kIOPSCurrentCapacityKey] as? Int,
+               let max = info[kIOPSMaxCapacityKey] as? Int, max > 0 {
+                batteryLevel = Double(current) / Double(max) * 100
+            }
+            if let charging = info[kIOPSIsChargingKey] as? Bool {
+                isCharging = charging
+            }
+            if let src = info[kIOPSPowerSourceStateKey] as? String {
+                powerSource = src == kIOPSBatteryPowerValue ? "Batterie" : "Secteur"
+            }
+        }
+
+        energy = EnergyStats(
+            thermalState: thermalInt,
+            batteryLevel: batteryLevel,
+            isCharging: isCharging,
+            powerSource: powerSource
+        )
+    }
+
     // MARK: - Monitoring
 
     func startMonitoring() {
@@ -166,5 +222,7 @@ final class SystemMonitor {
         refreshCPU()
         refreshMemory()
         refreshProcesses()
+        refreshDisk()
+        refreshEnergy()
     }
 }

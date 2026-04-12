@@ -48,3 +48,48 @@ struct ProcessStats: Identifiable, Sendable {
         ByteCountFormatter.string(fromByteCount: Int64(memoryBytes), countStyle: .memory)
     }
 }
+
+struct DiskStats: Sendable {
+    let total: UInt64
+    let free: UInt64
+
+    var used: UInt64 { total > free ? total - free : 0 }
+
+    var usedPercentage: Double {
+        guard total > 0 else { return 0 }
+        return Double(used) / Double(total) * 100
+    }
+
+    var usedGB: String {
+        String(format: "%.0f", Double(used) / 1_073_741_824)
+    }
+
+    var totalGB: String {
+        String(format: "%.0f", Double(total) / 1_073_741_824)
+    }
+
+    var freeGB: String {
+        String(format: "%.0f", Double(free) / 1_073_741_824)
+    }
+
+    static let zero = DiskStats(total: 0, free: 0)
+}
+
+struct EnergyStats: Sendable {
+    let thermalState: Int // 0=nominal, 1=fair, 2=serious, 3=critical
+    let batteryLevel: Double? // 0-100, nil if no battery
+    let isCharging: Bool?
+    let powerSource: String
+
+    var thermalLabel: String {
+        switch thermalState {
+        case 0: return "Normal"
+        case 1: return "Modéré"
+        case 2: return "Élevé"
+        case 3: return "Critique"
+        default: return "—"
+        }
+    }
+
+    static let zero = EnergyStats(thermalState: 0, batteryLevel: nil, isCharging: nil, powerSource: "—")
+}
