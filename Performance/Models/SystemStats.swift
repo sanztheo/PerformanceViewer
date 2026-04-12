@@ -15,6 +15,7 @@ struct CPUStats: Sendable {
 
 struct MemoryStats: Sendable {
     let used: UInt64
+    let active: UInt64
     let wired: UInt64
     let compressed: UInt64
     let free: UInt64
@@ -33,7 +34,7 @@ struct MemoryStats: Sendable {
         ByteCountFormatter.string(fromByteCount: Int64(total), countStyle: .memory)
     }
 
-    static let zero = MemoryStats(used: 0, wired: 0, compressed: 0, free: 0, total: 0)
+    static let zero = MemoryStats(used: 0, active: 0, wired: 0, compressed: 0, free: 0, total: 0)
 }
 
 struct ProcessStats: Identifiable, Sendable {

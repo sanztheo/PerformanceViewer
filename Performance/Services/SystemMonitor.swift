@@ -92,6 +92,7 @@ final class SystemMonitor {
         let pageSize = UInt64(vm_kernel_page_size)
         let total = ProcessInfo.processInfo.physicalMemory
 
+        let active      = UInt64(stats.active_count) * pageSize
         let wired       = UInt64(stats.wire_count) * pageSize
         let compressed  = UInt64(stats.compressor_page_count) * pageSize
         // Formule Activity Monitor : Total - (free - speculative + external) * pageSize
@@ -105,6 +106,7 @@ final class SystemMonitor {
 
         memory = MemoryStats(
             used: used,
+            active: active,
             wired: wired,
             compressed: compressed,
             free: free,
