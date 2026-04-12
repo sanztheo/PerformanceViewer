@@ -6,11 +6,20 @@ struct PerformanceApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            Text("Loading...")
-                .frame(width: 320, height: 400)
+            MenuBarPopover(monitor: monitor)
         } label: {
-            Label("Performance", systemImage: "gauge.medium")
+            HStack(spacing: 4) {
+                Image(systemName: "gauge.medium")
+                Text(menuBarLabel)
+                    .font(.system(.caption2, design: .monospaced))
+            }
         }
         .menuBarExtraStyle(.window)
+    }
+
+    private var menuBarLabel: String {
+        let cpu = Int(monitor.cpu.totalUsage)
+        let mem = Int(monitor.memory.usedPercentage)
+        return "\(cpu)% · \(mem)%"
     }
 }
