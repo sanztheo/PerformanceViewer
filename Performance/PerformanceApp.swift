@@ -1,8 +1,16 @@
+import ServiceManagement
 import SwiftUI
 
 @main
 struct PerformanceApp: App {
     @State private var monitor = SystemMonitor()
+
+    init() {
+        // Auto-register pour lancement au démarrage
+        if SMAppService.mainApp.status != .enabled {
+            try? SMAppService.mainApp.register()
+        }
+    }
 
     var body: some Scene {
         MenuBarExtra {
