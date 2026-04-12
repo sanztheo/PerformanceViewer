@@ -1,38 +1,37 @@
-//
-//  PerformanceTests.swift
-//  PerformanceTests
-//
-//  Created by Sanz on 13/04/2026.
-//
-
 import XCTest
 @testable import Performance
 
-final class PerformanceTests: XCTestCase {
-
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+final class SystemStatsTests: XCTestCase {
+    func testCPUUsageTotal() {
+        let cpu = CPUStats(user: 30, system: 20, idle: 45, nice: 5)
+        XCTAssertEqual(cpu.totalUsage, 55.0, accuracy: 0.1)
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    func testCPUZero() {
+        let cpu = CPUStats.zero
+        XCTAssertEqual(cpu.totalUsage, 0.0, accuracy: 0.1)
+        XCTAssertEqual(cpu.idle, 100.0, accuracy: 0.1)
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
-        // XCTest Documentation
-        // https://developer.apple.com/documentation/xctest
+    func testMemoryUsedPercentage() {
+        let mem = MemoryStats(
+            used: 8 * 1024 * 1024 * 1024,
+            wired: 2 * 1024 * 1024 * 1024,
+            compressed: 1 * 1024 * 1024 * 1024,
+            free: 8 * 1024 * 1024 * 1024,
+            total: 16 * 1024 * 1024 * 1024
+        )
+        XCTAssertEqual(mem.usedPercentage, 50.0, accuracy: 0.1)
     }
 
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
-        }
+    func testMemoryZeroTotal() {
+        let mem = MemoryStats(used: 0, wired: 0, compressed: 0, free: 0, total: 0)
+        XCTAssertEqual(mem.usedPercentage, 0.0, accuracy: 0.1)
     }
 
+    func testProcessInfoDisplay() {
+        let proc = ProcessStats(pid: 123, name: "Safari", cpuUsage: 12.5, memoryBytes: 500_000_000)
+        XCTAssertEqual(proc.id, 123)
+        XCTAssertFalse(proc.memoryFormatted.isEmpty)
+    }
 }
