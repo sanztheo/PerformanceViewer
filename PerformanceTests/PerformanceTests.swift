@@ -77,10 +77,11 @@ final class SystemMonitorTests: XCTestCase {
         XCTAssertGreaterThan(monitor.memory.used, 0, "Used memory should be > 0")
 
         // Process list should have entries
-        XCTAssertFalse(monitor.topProcesses.isEmpty, "Should have at least one process")
+        guard let firstProcess = monitor.topProcesses.first else {
+            XCTFail("Should have at least one process")
+            return
+        }
 
-        // Processes should have names
-        let firstProcess = monitor.topProcesses[0]
         XCTAssertFalse(firstProcess.name.isEmpty, "Process should have a name")
         XCTAssertGreaterThan(firstProcess.memoryBytes, 0, "Process should use some memory")
     }
