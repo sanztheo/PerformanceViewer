@@ -93,11 +93,11 @@ final class SystemMonitor {
         let total = ProcessInfo.processInfo.physicalMemory
 
         let wired      = UInt64(stats.wire_count) * pageSize
-        let active      = UInt64(stats.active_count) * pageSize
         let compressed  = UInt64(stats.compressor_page_count) * pageSize
-        let used        = active + wired + compressed
-
-        let free = total > used ? total - used : 0
+        // free = seulement les pages vraiment libres (comme Activity Monitor)
+        let free        = UInt64(stats.free_count) * pageSize
+        // used = tout sauf free (active + inactive + wired + compressed + speculative)
+        let used        = total > free ? total - free : 0
 
         memory = MemoryStats(
             used: used,
@@ -155,9 +155,14 @@ final class SystemMonitor {
 
     func refreshDisk() {
         do {
-            let attrs = try FileManager.default.attributesOfFileSystem(forPath: "/")
-            let total = (attrs[.systemSize] as? NSNumber)?.uint64Value ?? 0
-            let free = (attrs[.systemFreeSize] as? NSNumber)?.uint64Value ?? 0
+            let url = URL(fileURLWithPath: "/")
+            let values = try url.resourceValues(forKeys: [
+                .volumeTotalCapacityKey,
+                .volumeAvailableCapacityForImportantUsageKey
+            ])
+            let total = UInt64(values.volumeTotalCapacity ?? 0)
+            // availableCapacityForImportantUsage inclut l'espace purgeable (comme Finder)
+            let free = UInt64(values.volumeAvailableCapacityForImportantUsage ?? 0)
             disk = DiskStats(total: total, free: free)
         } catch {}
     }
