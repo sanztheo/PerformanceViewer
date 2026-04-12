@@ -92,12 +92,16 @@ final class SystemMonitor {
         let pageSize = UInt64(vm_kernel_page_size)
         let total = ProcessInfo.processInfo.physicalMemory
 
-        let wired      = UInt64(stats.wire_count) * pageSize
+        let wired       = UInt64(stats.wire_count) * pageSize
         let compressed  = UInt64(stats.compressor_page_count) * pageSize
-        // free = seulement les pages vraiment libres (comme Activity Monitor)
-        let free        = UInt64(stats.free_count) * pageSize
-        // used = tout sauf free (active + inactive + wired + compressed + speculative)
-        let used        = total > free ? total - free : 0
+        // Formule Activity Monitor : Total - (free - speculative + external) * pageSize
+        // external_page_count = file cache (exclu de "Mémoire utilisée")
+        // speculative = pages pré-allouées (retirées du free réel)
+        let notUsed     = (UInt64(stats.free_count)
+                         - min(UInt64(stats.speculative_count), UInt64(stats.free_count))
+                         + UInt64(stats.external_page_count)) * pageSize
+        let used        = total > notUsed ? total - notUsed : 0
+        let free        = total > used ? total - used : 0
 
         memory = MemoryStats(
             used: used,
