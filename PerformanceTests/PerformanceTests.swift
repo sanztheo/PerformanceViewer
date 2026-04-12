@@ -56,4 +56,32 @@ final class SystemMonitorTests: XCTestCase {
         XCTAssertGreaterThan(monitor.memory.used, 0, "Used memory should be > 0")
         XCTAssertLessThanOrEqual(monitor.memory.used, monitor.memory.total)
     }
+
+    func testRefreshAllPopulatesAllStats() {
+        let monitor = SystemMonitor()
+        // Stop the auto-timer to control refresh manually
+        monitor.stopMonitoring()
+
+        // Two CPU refreshes needed for delta calculation
+        monitor.refreshCPU()
+        Thread.sleep(forTimeInterval: 0.1)
+        monitor.refreshCPU()
+        monitor.refreshMemory()
+        monitor.refreshProcesses()
+
+        // CPU should show usage after two samples
+        XCTAssertGreaterThan(monitor.cpu.totalUsage, 0, "CPU usage should be > 0")
+
+        // Memory should be populated
+        XCTAssertGreaterThan(monitor.memory.total, 0, "Total memory should be > 0")
+        XCTAssertGreaterThan(monitor.memory.used, 0, "Used memory should be > 0")
+
+        // Process list should have entries
+        XCTAssertFalse(monitor.topProcesses.isEmpty, "Should have at least one process")
+
+        // Processes should have names
+        let firstProcess = monitor.topProcesses[0]
+        XCTAssertFalse(firstProcess.name.isEmpty, "Process should have a name")
+        XCTAssertGreaterThan(firstProcess.memoryBytes, 0, "Process should use some memory")
+    }
 }
