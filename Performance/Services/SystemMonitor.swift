@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import Observation
 
@@ -8,6 +9,11 @@ final class SystemMonitor {
     var topProcesses: [ProcessStats] = []
 
     private var previousCPUTicks: (user: UInt64, system: UInt64, idle: UInt64, nice: UInt64)?
+    private var timer: Timer?
+
+    init() {
+        startMonitoring()
+    }
 
     // MARK: - CPU
 
@@ -97,5 +103,68 @@ final class SystemMonitor {
             free: free,
             total: total
         )
+    }
+
+    // MARK: - Processes
+
+    func refreshProcesses() {
+        let bufferSize = proc_listallpids(nil, 0)
+        guard bufferSize > 0 else { return }
+
+        var pids = [pid_t](repeating: 0, count: Int(bufferSize))
+        let actualSize = proc_listallpids(&pids, Int32(pids.count) * Int32(MemoryLayout<pid_t>.stride))
+        guard actualSize > 0 else { return }
+
+        let pidCount = Int(actualSize)
+        var processes: [ProcessStats] = []
+
+        for i in 0..<pidCount {
+            let pid = pids[i]
+            guard pid > 0 else { continue }
+
+            var info = proc_taskallinfo()
+            let infoSize = Int32(MemoryLayout<proc_taskallinfo>.stride)
+            let result = proc_pidinfo(pid, PROC_PIDTASKALLINFO, 0, &info, infoSize)
+            guard result == infoSize else { continue }
+
+            var nameBuffer = [CChar](repeating: 0, count: Int(MAXPATHLEN))
+            proc_name(pid, &nameBuffer, UInt32(nameBuffer.count))
+            let name = String(cString: nameBuffer)
+            guard !name.isEmpty else { continue }
+
+            let memBytes = UInt64(info.ptinfo.pti_resident_size)
+
+            processes.append(ProcessStats(
+                pid: pid,
+                name: name,
+                cpuUsage: 0,
+                memoryBytes: memBytes
+            ))
+        }
+
+        topProcesses = processes
+            .sorted { $0.memoryBytes > $1.memoryBytes }
+            .prefix(10)
+            .map { $0 }
+    }
+
+    // MARK: - Monitoring
+
+    func startMonitoring() {
+        refreshAll()
+        timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            self?.refreshAll()
+        }
+    }
+
+    func stopMonitoring() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    private func refreshAll() {
+        refreshCPU()
+        refreshMemory()
+        refreshProcesses()
     }
 }
