@@ -5,76 +5,79 @@
 <h1 align="center">Performance Viewer</h1>
 
 <p align="center">
-  <strong>A lightweight macOS menu bar app for real-time system monitoring.</strong>
+  <strong>A lightweight macOS menu bar utility for real-time system monitoring.</strong><br/>
+  <em>CPU · Memory · Disk · Battery · Thermal · Top Processes</em>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS%2015%2B-blue?logo=apple&logoColor=white" alt="macOS 15+"/>
-  <img src="https://img.shields.io/badge/Swift-5-orange?logo=swift&logoColor=white" alt="Swift 5"/>
-  <img src="https://img.shields.io/badge/UI-SwiftUI-blue?logo=swift&logoColor=white" alt="SwiftUI"/>
-  <img src="https://img.shields.io/badge/dependencies-zero-brightgreen" alt="Zero dependencies"/>
+  <img src="https://img.shields.io/badge/Swift-5-F05138?logo=swift&logoColor=white" alt="Swift 5"/>
+  <img src="https://img.shields.io/badge/UI-SwiftUI-007AFF?logo=swift&logoColor=white" alt="SwiftUI"/>
+  <img src="https://img.shields.io/badge/dependencies-zero-2ea44f" alt="Zero dependencies"/>
   <img src="https://img.shields.io/github/license/sanztheo/PerformanceViewer" alt="License"/>
+  <img src="https://img.shields.io/github/stars/sanztheo/PerformanceViewer?style=social" alt="Stars"/>
 </p>
 
 ---
 
-## Overview
+## Why?
 
-**Performance Viewer** lives in your menu bar and gives you a constant, at-a-glance view of your Mac's vital signs — CPU, memory, disk, battery and thermal state — updated every 2 seconds. Click it to reveal a rich popover with detailed breakdowns and the top 10 memory-hungry processes.
-
-No Dock icon. No window clutter. Just the numbers you need, always visible.
+macOS Activity Monitor is powerful but heavy. Third-party monitors are bloated with features you don't need. **Performance Viewer** gives you the essentials — always visible in your menu bar, one click away from details, zero background overhead.
 
 ## Features
 
-- **Menu Bar Summary** — CPU %, RAM used/total, battery or thermal state, disk usage — all in a compact monospaced label
-- **Interactive Popover** — 2×2 card grid with color-coded progress bars and click-to-expand detail panels
-- **CPU Breakdown** — User, System, Idle, Nice percentages with visual bars
-- **Memory Details** — Active, Wired, Compressed, Free with proportional visualization
-- **Disk Usage** — Used / Free / Total in GB (base 10, matching Finder)
-- **Energy & Battery** — Thermal state, power source, battery level, charging status
-- **Top 10 Processes** — Ranked by resident memory, with formatted sizes
-- **Launch at Login** — Toggle via `SMAppService`, auto-registers on first launch
-- **Activity Monitor Shortcut** — One-click link to macOS Activity Monitor
-- **Native & Lightweight** — Pure SwiftUI + Mach/Darwin APIs, zero third-party dependencies
+| | Feature | Description |
+|---|---------|-------------|
+| 📊 | **Menu Bar Summary** | CPU %, RAM, battery/thermal, disk — compact monospaced label, always visible |
+| 🎛️ | **Interactive Popover** | 2×2 card grid with color-coded progress bars and click-to-expand details |
+| 🧠 | **CPU Breakdown** | User / System / Idle / Nice with proportional bars |
+| 💾 | **Memory Details** | Active / Wired / Compressed / Free breakdown |
+| 💿 | **Disk Usage** | Used / Free / Total in GB (base 10, matching Finder) |
+| 🔋 | **Energy & Battery** | Thermal state, power source, charge level, charging status |
+| 📋 | **Top 10 Processes** | Ranked by resident memory with formatted sizes |
+| 🚀 | **Launch at Login** | One toggle, powered by `SMAppService` |
+| 🔗 | **Activity Monitor** | Quick link to open macOS Activity Monitor |
+
+## How It Works
+
+Performance Viewer runs as a **menu bar agent** (no Dock icon, no main window). A background timer refreshes all metrics every **2 seconds** using low-level macOS APIs:
+
+| Metric | API | Notes |
+|--------|-----|-------|
+| CPU | `host_processor_info` | Delta between samples for accurate percentages |
+| Memory | `host_statistics64` | Formula aligned with Activity Monitor / fastfetch |
+| Disk | `URL.resourceValues` | Uses `volumeAvailableCapacityForImportantUsage` like Finder |
+| Battery | `IOPSCopyPowerSourcesInfo` | IOKit power source enumeration |
+| Thermal | `ProcessInfo.thermalState` | Nominal → Fair → Serious → Critical |
+| Processes | `proc_listallpids` + `proc_pidinfo` | Top 10 by RSS, updated live |
 
 ## Architecture
 
 ```
 Performance/
-├── PerformanceApp.swift              # @main — MenuBarExtra scene
+├── PerformanceApp.swift                 # @main — MenuBarExtra scene + login item
 ├── Models/
-│   └── SystemStats.swift             # CPUStats, MemoryStats, DiskStats, EnergyStats, ProcessStats
+│   └── SystemStats.swift                # Sendable value types with computed formatting
 ├── Services/
-│   └── SystemMonitor.swift           # @Observable service — Mach host_info, proc_*, IOKit
+│   └── SystemMonitor.swift              # @Observable — Mach, proc_*, IOKit collection
 └── Views/
-    ├── MenuBarPopover.swift           # Main popover UI — grid, details, processes, footer
+    ├── MenuBarPopover.swift              # Main UI — stats grid, details, processes, footer
     └── Components/
-        ├── ProcessRowView.swift       # Individual process row
-        └── GaugeRingView.swift        # Reusable gauge ring component
+        ├── ProcessRowView.swift          # Process row with rank, name, memory
+        └── GaugeRingView.swift           # Reusable circular gauge component
 ```
 
-| Layer | Responsibility |
-|-------|---------------|
-| **Models** | Sendable value types with computed properties for formatting and derived values |
-| **Services** | Low-level system data collection via Mach APIs, `proc_pidinfo`, IOKit power sources |
-| **Views** | SwiftUI interface with animated transitions, color-coded thresholds, and responsive layout |
-
-## System APIs Used
-
-| Metric | API |
-|--------|-----|
-| CPU | `host_processor_info` / `PROCESSOR_CPU_LOAD_INFO` (delta between samples) |
-| Memory | `host_statistics64` / `HOST_VM_INFO64` (formula matching Activity Monitor) |
-| Disk | `URL.resourceValues` — `volumeTotalCapacity`, `volumeAvailableCapacityForImportantUsage` |
-| Battery | `IOPSCopyPowerSourcesInfo` / `IOPSCopyPowerSourcesList` (IOKit) |
-| Thermal | `ProcessInfo.thermalState` |
-| Processes | `proc_listallpids` / `proc_pidinfo` with `PROC_PIDTASKALLINFO` |
+**Design principles:**
+- Pure SwiftUI with `@Observable` (Swift Observation framework)
+- Zero third-party dependencies — only Apple frameworks
+- `Sendable` models for thread safety
+- Color thresholds adapt to load (green → orange → red)
 
 ## Requirements
 
-- macOS 15.0+
-- Xcode 16+
-- App Sandbox disabled (required for process enumeration and IOKit access)
+- **macOS 15.0** (Sequoia) or later
+- **Xcode 16+** to build
+- App Sandbox disabled (required for `proc_pidinfo`, IOKit, and Mach APIs)
 
 ## Build & Run
 
@@ -84,14 +87,25 @@ cd PerformanceViewer/Performance
 open Performance.xcodeproj
 ```
 
-Then hit **⌘R** in Xcode. The app appears in your menu bar — no Dock icon.
+Press **⌘R** in Xcode. The app appears in your menu bar.
+
+## Contributing
+
+Contributions are welcome! Some ideas:
+
+- [ ] Per-process CPU usage tracking
+- [ ] Network throughput monitoring
+- [ ] GPU utilization (Metal Performance HUD)
+- [ ] Configurable refresh interval
+- [ ] Sparkline history graphs in the popover
+- [ ] Notification alerts for high usage thresholds
 
 ## License
 
-MIT
+[MIT](LICENSE)
 
 ---
 
 <p align="center">
-  Built with ❤️ and SwiftUI
+  <sub>Built with SwiftUI · No dependencies · Open source</sub>
 </p>
